@@ -1,87 +1,101 @@
-var csInterface = null;
-try {
-  if (typeof CSInterface !== "undefined") {
-    csInterface = new CSInterface();
+/* VectorTracer Pro CEP panel */
+(function () {
+  "use strict";
+  var csInterface = null;
+  try {
+    if (typeof CSInterface !== "undefined") csInterface = new CSInterface();
+  } catch (e) {}
+
+  var slider = document.getElementById("colorsSlider");
+  var colorVal = document.getElementById("colorVal");
+  var btn = document.getElementById("btnTrace");
+  var status = document.getElementById("status");
+  var preset = document.getElementById("presetSelect");
+  var ignoreWhite = document.getElementById("chkIgnoreWhite");
+  var autoExpand = document.getElementById("chkAutoExpand");
+  var ungroup = document.getElementById("chkUngroup");
+  var clean = document.getElementById("chkCleanSpecks");
+
+  function show(message, type) {
+    status.className = "status-msg " + (type || "");
+    status.textContent = message;
   }
-} catch (e) {
-  console.warn("Chạy ngoài môi trường CEP", e);
-}
 
-const slider = document.getElementById("colorsSlider");
-const colorVal = document.getElementById("colorVal");
-const btnTrace = document.getElementById("btnTrace");
-const statusEl = document.getElementById("status");
-const presetSelect = document.getElementById("presetSelect");
-const chkIgnoreWhite = document.getElementById("chkIgnoreWhite");
-const chkAutoExpand = document.getElementById("chkAutoExpand");
-const chkUngroup = document.getElementById("chkUngroup");
-const chkCleanSpecks = document.getElementById("chkCleanSpecks");
-
-slider.addEventListener("input", (e) => {
-  colorVal.innerText = e.target.value;
-});
-
-presetSelect.addEventListener("change", (e) => {
-  const val = e.target.value;
-  if (val === "0" || val === "1") {
-    slider.value = 16;
-    colorVal.innerText = 16;
-  } else if (val === "2") {
-    slider.value = 64;
-    colorVal.innerText = 64;
+  function busy(value) {
+    btn.disabled = !!value;
+    btn.textContent = value ? "Đang xử lý…" : "⚡ Chuyển thành Vector";
   }
-});
 
-btnTrace.addEventListener("click", () => {
-  const scopeEl = document.querySelector('input[name="scope"]:checked');
-  const scope = scopeEl ? scopeEl.value : "selection";
+  slider.addEventListener("input", function () {
+    colorVal.textContent = slider.value;
+  });
 
-  const options = {
-    scope: scope,
-    presetIndex: presetSelect.value,
-    maxColors: slider.value,
-    ignoreWhite: chkIgnoreWhite.checked,
-    autoExpand: chkAutoExpand.checked,
-    ungroup: chkUngroup.checked,
-    cleanSpecks: chkCleanSpecks.checked
-  };
+  preset.addEventListener("change", function () {
+    if (preset.value === "0") slider.value = 6;
+    else if (preset.value === "1") slider.value = 16;
+    else if (preset.value === "2") slider.value = 64;
+    colorVal.textContent = slider.value;
+  });
 
-  statusEl.style.color = "#4dabf7";
-  statusEl.innerText = "⏳ Đang xử lý chuyển đổi vector...";
-  btnTrace.disabled = true;
+  function escapeForSingleQuotedScript(value) {
+    return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  }
 
-  if (csInterface) {
+  btn.addEventListener("click", function () {
+    if (!csInterface || typeof SystemPath === "undefined") {
+      show("Không tìm thấy môi trường CEP. Hãy mở panel trong Illustrator, không chạy trang này trực tiếp trên trình duyệt.", "error");
+      return;
+    }
+
+    var scopeEl = document.querySelector('input[name="scope"]:checked');
+    var options = {
+      scope: scopeEl ? scopeEl.value : "selection",
+      presetIndex: parseInt(preset.value, 10),
+      maxColors: parseInt(slider.value, 10),
+      ignoreWhite: ignoreWhite.checked,
+      autoExpand: autoExpand.checked,
+      ungroup: ungroup.checked,
+      cleanSpecks: clean.checked
+    };
+
+    var extPath;
     try {
-      // Tự động load file jsx mới nhất để luôn cập nhật logic
-      var extPath = csInterface.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, "/");
-      var loadScriptCmd = '$.evalFile("' + extPath + '/jsx/hostscript.jsx");';
-      var jsonStr = JSON.stringify(options).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-      var fullCmd = loadScriptCmd + " runVectorTraceFromPanel('" + jsonStr + "');";
+      extPath = csInterface.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, "/");
+    } catch (e) {
+      show("Không xác định được thư mục panel: " + e.message, "error");
+      return;
+    }
 
-      csInterface.evalScript(fullCmd, (res) => {
-        btnTrace.disabled = false;
+    var jsxPath = extPath + "/jsx/hostscript.jsx";
+    var command = '$.evalFile("' + jsxPath.replace(/"/g, '\\"') + '");' +
+      "runVectorTraceFromPanel('" + escapeForSingleQuotedScript(JSON.stringify(options)) + "');";
+
+    busy(true);
+    show("Đang xử lý ảnh trong Illustrator…", "working");
+
+    try {
+      csInterface.evalScript(command, function (result) {
+        busy(false);
+        if (!result || result === "EvalScript error.") {
+          show("Illustrator không trả về kết quả. Kiểm tra việc cài panel CEP và file jsx/hostscript.jsx.", "error");
+          return;
+        }
         try {
-          var data = JSON.parse(res);
-          if (data.success) {
-            statusEl.style.color = "#51cf66";
-            statusEl.innerText = "✅ " + data.message;
+          var data = JSON.parse(result);
+          if (data.count > 0 && data.failed === 0 && data.warnings === 0) {
+            show("✓ " + data.message, "success");
+          } else if (data.count > 0) {
+            show("⚠ " + data.message, "warning");
           } else {
-            statusEl.style.color = "#ff6b6b";
-            statusEl.innerText = "❌ " + data.message;
+            show("✕ " + data.message, "error");
           }
-        } catch (err) {
-          statusEl.style.color = "#ff6b6b";
-          statusEl.innerText = res || "Đã xảy ra lỗi!";
+        } catch (parseError) {
+          show("Không đọc được phản hồi của Illustrator: " + String(result), "error");
         }
       });
-    } catch (errExec) {
-      btnTrace.disabled = false;
-      statusEl.style.color = "#ff6b6b";
-      statusEl.innerText = "Lỗi thực thi: " + errExec.message;
+    } catch (e) {
+      busy(false);
+      show("Lỗi gọi Illustrator: " + e.message, "error");
     }
-  } else {
-    btnTrace.disabled = false;
-    statusEl.style.color = "#ffa94d";
-    statusEl.innerText = "Vui lòng mở panel trong Adobe Illustrator!";
-  }
-});
+  });
+})();

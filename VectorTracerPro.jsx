@@ -72,7 +72,7 @@
     var chkUngroup = pnlOptions.add("checkbox", undefined, "Rã nhóm sau khi Expand (Ungroup Paths)");
     chkUngroup.value = true;
 
-    var chkCleanSpecks = pnlOptions.add("checkbox", undefined, "Lọc bỏ rác & mảnh vụn vector nhỏ (< 4 px²)");
+    var chkCleanSpecks = pnlOptions.add("checkbox", undefined, "Lọc bỏ rác & mảnh vụn vector nhỏ (< 4 pt²)");
     chkCleanSpecks.value = true;
 
     // --- NÚT ĐIỀU KHIỂN ---
@@ -110,7 +110,16 @@
                         }
                     }
 
-                    if (currentItem.typename !== "RasterItem") {
+                    if (currentItem && currentItem.typename === "GroupItem") {
+                        for (var gi = 0; gi < currentItem.pageItems.length; gi++) {
+                            if (currentItem.pageItems[gi].typename === "RasterItem") {
+                                currentItem = currentItem.pageItems[gi];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!currentItem || currentItem.typename !== "RasterItem") {
                         continue;
                     }
 
@@ -134,14 +143,14 @@
                 if (chkAutoExpand.value) {
                     var expandedGroup = pluginItem.tracing.expandTracing(true);
 
+                    // Lọc rác nhỏ chỉ trong group vừa expand
+                    if (chkCleanSpecks.value && expandedGroup) {
+                        cleanTinySpecks(expandedGroup, 4);
+                    }
+
                     // Ungroup
                     if (chkUngroup.value && expandedGroup) {
                         ungroupAll(expandedGroup);
-                    }
-
-                    // Lọc rác nhỏ
-                    if (chkCleanSpecks.value) {
-                        cleanTinySpecks(doc.selection, 4);
                     }
                 }
 
@@ -270,18 +279,23 @@
         }
     }
 
-    function cleanTinySpecks(items, minArea) {
-        if (!items) return;
-        for (var i = items.length - 1; i >= 0; i--) {
-            var it = items[i];
-            if (it.typename === "PathItem") {
-                if (Math.abs(it.area) < minArea) {
-                    it.remove();
+    function cleanTinySpecks(target, minArea) {
+        if (!target) return;
+        try {
+            if (target.typename === "PathItem") {
+                if (Math.abs(target.area) < minArea) {
+                    target.remove();
                 }
-            } else if (it.typename === "GroupItem") {
-                cleanTinySpecks(it.pageItems, minArea);
+            } else if (target.typename === "GroupItem") {
+                for (var i = target.pageItems.length - 1; i >= 0; i--) {
+                    cleanTinySpecks(target.pageItems[i], minArea);
+                }
+            } else if (target.length) {
+                for (var j = target.length - 1; j >= 0; j--) {
+                    cleanTinySpecks(target[j], minArea);
+                }
             }
-        }
+        } catch (e) {}
     }
 
     win.center();

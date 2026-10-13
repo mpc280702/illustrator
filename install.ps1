@@ -1,33 +1,49 @@
-# Tự động yêu cầu quyền Administrator nếu chưa có
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# VectorTracer Pro 1.0.1 - Bộ cài đặt tự động cho Adobe Illustrator
+$ErrorActionPreference = "SilentlyContinue"
 
-if (-not $isAdmin) {
-    Write-Host "[*] Đang yêu cầu quyền Administrator để cài đặt vào thư mục Adobe Illustrator..." -ForegroundColor Cyan
-    try {
-        Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"") -Verb RunAs
-        exit
-    } catch {
-        Write-Host "[!] Cần cấp quyền Administrator để cài đặt vào Program Files!" -ForegroundColor Red
-        Pause
-        exit
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "   Cài đặt VectorTracer Pro 1.0.1        " -ForegroundColor Cyan
+Write-Host "=========================================`n" -ForegroundColor Cyan
+
+# 1. Cài đặt CEP Panel vào AppData của người dùng (Không cần quyền Admin)
+$cepUserDir = Join-Path $env:APPDATA "Adobe\CEP\extensions"
+$cepDestDir = Join-Path $cepUserDir "VectorTracerPro"
+
+if (-not (Test-Path $cepUserDir)) {
+    New-Item -ItemType Directory -Path $cepUserDir -Force | Out-Null
+}
+
+$sourceDir = $PSScriptRoot
+
+Write-Host "[1/2] Đang cài đặt Panel công cụ gắn cố định (CEP Extension)..." -ForegroundColor Yellow
+
+try {
+    # Sao chép toàn bộ source vào thư mục CEP extension
+    $excludeList = @(".git", ".gitignore", "install.ps1")
+    $items = Get-ChildItem -Path $sourceDir | Where-Object { $excludeList -notcontains $_.Name }
+
+    if (-not (Test-Path $cepDestDir)) {
+        New-Item -ItemType Directory -Path $cepDestDir -Force | Out-Null
     }
+
+    foreach ($item in $items) {
+        Copy-Item -Path $item.FullName -Destination $cepDestDir -Recurse -Force
+    }
+    Write-Host "[+] Cài đặt Panel thành công tại: $cepDestDir" -ForegroundColor Green
+} catch {
+    Write-Host "[!] Lỗi khi cài đặt Panel CEP: $_" -ForegroundColor Red
 }
 
-$sourceFile = Join-Path $PSScriptRoot "VectorTracerPro.jsx"
-
-if (-not (Test-Path $sourceFile)) {
-    Write-Host "[!] Không tìm thấy file VectorTracerPro.jsx trong thư mục này!" -ForegroundColor Red
-    Pause
-    exit
-}
+# 2. Cài đặt Script vào Menu Scripts của Illustrator (nếu có quyền Admin)
+Write-Host "`n[2/2] Cài đặt Script độc lập vào menu File > Scripts..." -ForegroundColor Yellow
+$scriptSource = Join-Path $sourceDir "VectorTracerPro.jsx"
 
 $adobePaths = @(
     "C:\Program Files\Adobe",
     "C:\Program Files (x86)\Adobe"
 )
 
-$installedCount = 0
-
+$scriptInstalled = 0
 foreach ($basePath in $adobePaths) {
     if (Test-Path $basePath) {
         $aiFolders = Get-ChildItem -Path $basePath -Directory -Filter "Adobe Illustrator*" -ErrorAction SilentlyContinue
@@ -40,12 +56,10 @@ foreach ($basePath in $adobePaths) {
                     if (Test-Path $scriptsFolder) {
                         $destPath = Join-Path $scriptsFolder "VectorTracerPro.jsx"
                         try {
-                            Copy-Item -Path $sourceFile -Destination $destPath -Force -ErrorAction Stop
-                            Write-Host "[+] Cài đặt thành công vào: $destPath" -ForegroundColor Green
-                            $installedCount++
-                        } catch {
-                            Write-Host "[!] Lỗi khi sao chép vào $destPath: $_" -ForegroundColor Red
-                        }
+                            Copy-Item -Path $scriptSource -Destination $destPath -Force -ErrorAction Stop
+                            Write-Host "[+] Đã cài đặt vào: $destPath" -ForegroundColor Green
+                            $scriptInstalled++
+                        } catch {}
                     }
                 }
             }
@@ -53,13 +67,16 @@ foreach ($basePath in $adobePaths) {
     }
 }
 
-if ($installedCount -gt 0) {
-    Write-Host "`n>>> Hoàn tất! Khởi động lại Adobe Illustrator." -ForegroundColor Cyan
-    Write-Host ">>> Bạn sẽ thấy script tại menu: File > Scripts > VectorTracerPro" -ForegroundColor Green
-} else {
-    Write-Host "`n[!] Không tìm thấy thư mục Presets\Scripts của Adobe Illustrator." -ForegroundColor Yellow
-    Write-Host "Mẹo: Bạn có thể nhấn Ctrl + F12 trong Illustrator và chọn trực tiếp file VectorTracerPro.jsx để dùng ngay." -ForegroundColor Gray
+if ($scriptInstalled -eq 0) {
+    Write-Host "[*] Lưu ý: Để script xuất hiện trong menu File > Scripts, chạy install.ps1 bằng quyền Administrator." -ForegroundColor Gray
 }
 
-Write-Host "`nNhấn phím bất kỳ để đóng..."
+Write-Host "`n=========================================" -ForegroundColor Cyan
+Write-Host ">>> HOÀN TẤT CÀI ĐẶT!" -ForegroundColor Green
+Write-Host "1. Khởi động lại Adobe Illustrator." -ForegroundColor White
+Write-Host "2. Mở panel tại: Window > Extensions > VectorTracer Pro" -ForegroundColor White
+Write-Host "3. Kéo thả tab vào thanh công cụ bên phải để sử dụng lâu dài." -ForegroundColor White
+Write-Host "=========================================`n" -ForegroundColor Cyan
+
+Write-Host "Nhấn phím bất kỳ để thoát..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

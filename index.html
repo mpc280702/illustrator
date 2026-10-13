@@ -1,63 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VectorTracer Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="header">
+  <main class="container">
+    <header class="header">
       <h2>VectorTracer Pro</h2>
-      <p class="subtitle">Chuyển ảnh sang Vector tự động</p>
-    </div>
-
-    <!-- 1. Phạm vi -->
-    <div class="section">
+      <p class="subtitle">Chuyển ảnh Raster thành Vector trong Illustrator</p>
+    </header>
+    <section class="section">
       <label class="section-title">1. Phạm vi xử lý</label>
       <div class="radio-group">
         <label><input type="radio" name="scope" value="selection" checked> Ảnh đang chọn</label>
-        <label><input type="radio" name="scope" value="all"> Tất cả ảnh trong file</label>
+        <label><input type="radio" name="scope" value="all"> Tất cả ảnh trong tài liệu</label>
       </div>
-    </div>
-
-    <!-- 2. Preset -->
-    <div class="section">
-      <label class="section-title">2. Kiểu Vector (Preset)</label>
+    </section>
+    <section class="section">
+      <label class="section-title" for="presetSelect">2. Kiểu Vector</label>
       <select id="presetSelect" class="form-control">
-        <option value="0" selected>Logo phẳng (Flat Logo - Sắc nét)</option>
-        <option value="1">Hoạt hình (Illustration - 16 màu)</option>
-        <option value="2">Ảnh chi tiết (High Fidelity Photo)</option>
-        <option value="3">Đơn sắc (Black & White Silhouette)</option>
-        <option value="4">Nét vẽ (Line Art / Sketch)</option>
+        <option value="0" selected>Logo phẳng — ít màu</option>
+        <option value="1">Hoạt hình / Minh họa</option>
+        <option value="2">Ảnh chi tiết cao</option>
+        <option value="3">Đen trắng / Silhouette</option>
+        <option value="4">Nét vẽ / Line Art</option>
       </select>
-
       <div class="slider-row">
-        <span>Số màu: <b id="colorVal">16</b></span>
-        <input type="range" id="colorsSlider" min="2" max="64" value="16">
+        <label for="colorsSlider">Số màu: <b id="colorVal">6</b></label>
+        <input type="range" id="colorsSlider" min="2" max="64" value="6">
       </div>
-    </div>
-
-    <!-- 3. Tùy chọn -->
-    <div class="section">
+      <p class="hint">Số màu áp dụng cho các preset màu; preset ảnh chi tiết và đen trắng có thể không dùng thiết lập này.</p>
+    </section>
+    <section class="section">
       <label class="section-title">3. Tùy chọn nâng cao</label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="chkIgnoreWhite" checked> Bỏ nền trắng (Ignore White)
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="chkAutoExpand" checked> Tự động rã vector (Auto Expand)
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="chkUngroup" checked> Rã nhóm sau khi Expand (Ungroup)
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="chkCleanSpecks" checked> Lọc mảnh rác nhỏ (&lt; 4 px²)
-      </label>
-    </div>
-
-    <button id="btnTrace" class="btn-primary">⚡ Chuyển thành Vector</button>
-    <div id="status" class="status-msg"></div>
-  </div>
-
+      <label class="checkbox-row"><input type="checkbox" id="chkIgnoreWhite" checked> Bỏ nền trắng (Ignore White)</label>
+      <label class="checkbox-row"><input type="checkbox" id="chkAutoExpand" checked> Tự động Expand thành Path</label>
+      <label class="checkbox-row"><input type="checkbox" id="chkUngroup" checked> Rã nhóm sau khi Expand</label>
+      <label class="checkbox-row"><input type="checkbox" id="chkCleanSpecks" checked> Lọc Path nhỏ hơn 4 pt²</label>
+      <p class="hint warning">Nên lưu bản sao tài liệu trước khi lọc path nhỏ vì thao tác này xóa các đường vector nhỏ trong kết quả Trace.</p>
+    </section>
+    <button id="btnTrace" class="btn-primary" type="button">⚡ Chuyển thành Vector</button>
+    <div id="status" class="status-msg" role="status" aria-live="polite">Mở tài liệu Illustrator và chọn ảnh để bắt đầu.</div>
+    <p class="footer-note">Panel chạy bên trong Illustrator để tự động điều khiển ứng dụng.</p>
+  </main>
   <script src="csinterface.js"></script>
   <script src="index.js"></script>
 </body>

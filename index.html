@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>VectorTracer Pro</h2>
+      <p class="subtitle">Chuyển ảnh sang Vector tự động</p>
+    </div>
+
+    <!-- 1. Phạm vi -->
+    <div class="section">
+      <label class="section-title">1. Phạm vi xử lý</label>
+      <div class="radio-group">
+        <label><input type="radio" name="scope" value="selection" checked> Ảnh đang chọn</label>
+        <label><input type="radio" name="scope" value="all"> Tất cả ảnh trong file</label>
+      </div>
+    </div>
+
+    <!-- 2. Preset -->
+    <div class="section">
+      <label class="section-title">2. Kiểu Vector (Preset)</label>
+      <select id="presetSelect" class="form-control">
+        <option value="0" selected>Logo phẳng (Flat Logo - Sắc nét)</option>
+        <option value="1">Hoạt hình (Illustration - 16 màu)</option>
+        <option value="2">Ảnh chi tiết (High Fidelity Photo)</option>
+        <option value="3">Đơn sắc (Black & White Silhouette)</option>
+        <option value="4">Nét vẽ (Line Art / Sketch)</option>
+      </select>
+
+      <div class="slider-row">
+        <span>Số màu: <b id="colorVal">16</b></span>
+        <input type="range" id="colorsSlider" min="2" max="64" value="16">
+      </div>
+    </div>
+
+    <!-- 3. Tùy chọn -->
+    <div class="section">
+      <label class="section-title">3. Tùy chọn nâng cao</label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="chkIgnoreWhite" checked> Bỏ nền trắng (Ignore White)
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="chkAutoExpand" checked> Tự động rã vector (Auto Expand)
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="chkUngroup" checked> Rã nhóm sau khi Expand (Ungroup)
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="chkCleanSpecks" checked> Lọc mảnh rác nhỏ (&lt; 4 px²)
+      </label>
+    </div>
+
+    <button id="btnTrace" class="btn-primary">⚡ Chuyển thành Vector</button>
+    <div id="status" class="status-msg"></div>
+  </div>
+
+  <script src="csinterface.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
